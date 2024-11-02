@@ -1,22 +1,27 @@
 from flask import Flask, jsonify, request
 import sqlite3
 import threading
+import os
 
 app = Flask(__name__)
 
 thread_local = threading.local()
 
-def init_catalog_db():
+pathOrderDB = os.path.join(os.path.dirname(__file__), 'order.db')
+pathCatalogDB = os.path.join(os.path.dirname(__file__), 'catalog.db')
+
+def initCatalogDb():
     if not hasattr(thread_local, 'catalog_conn'):
-        thread_local.catalog_conn = sqlite3.connect('C:\\Users\\Admin\\Desktop\\Book-Bazar-main\\catalog_microservice\\catalog.db')
+        thread_local.catalog_conn = sqlite3.connect(pathCatalogDB)
         thread_local.catalog_conn.row_factory = sqlite3.Row
     return thread_local.catalog_conn
 
-def init_order_db():
+def initOrderDb():
     if not hasattr(thread_local, 'order_conn'):
-        thread_local.order_conn = sqlite3.connect('C:\\Users\\Admin\\Desktop\\Book-Bazar-main\\order_microservice\\order.db')
+        thread_local.order_conn = sqlite3.connect(pathOrderDB)
         thread_local.order_conn.row_factory = sqlite3.Row
     return thread_local.order_conn
+
 
 @app.teardown_appcontext
 def cleanup_databases(error):
@@ -27,23 +32,23 @@ def cleanup_databases(error):
 
 @app.route('/product/<id>', methods=['GET'])
 def fetch_product_by_id(id):
-
     if not id.isdigit():
         return jsonify({"message": "Product ID must be numeric"}), 400
 
-    catalog_conn = init_catalog_db()
-    with catalog_conn:
-        cursor = catalog_conn.cursor()
-        cursor.execute("SELECT * FROM books WHERE id=?", (int(id),))
-        product = cursor.fetchone()
-        if product:
-            return jsonify(dict(product)), 200
-        else:
-            return jsonify({"message": "Product not found"}), 404
+    catalog_conn = initCatalogDb()
+    cursor = catalog_conn.cursor()
+    cursor.execute("SELECT * FROM books WHERE id=?", (id),)
+    product = cursor.fetchone()
+    cursor.close()
+    if product:
+        return jsonify(dict(product)), 200
+    else:
+        return jsonify({"message": "Product not found"}), 404
+
 
 @app.route('/products/<string:topic>', methods=['GET'])
 def fetch_products_by_topic(topic):
-    catalog_conn = init_catalog_db()
+    catalog_conn = initCatalogDb()
     with catalog_conn:
         cursor = catalog_conn.cursor()
         if topic.lower() == 'all':
@@ -58,8 +63,8 @@ def fetch_products_by_topic(topic):
 
 @app.route('/purchase/<int:id>/', methods=['PUT'])
 def purchase_product(id):
-    catalog_conn = init_catalog_db()
-    order_conn = init_order_db()
+    catalog_conn = initCatalogDb()
+    order_conn = initOrderDb()
 
     with catalog_conn:
         cursor = catalog_conn.cursor()
