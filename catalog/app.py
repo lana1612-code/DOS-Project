@@ -1,17 +1,18 @@
 from flask import Flask, jsonify, request
 import sqlite3
 import threading
-
+import os
 app = Flask(__name__)
 
 
 thread_data = threading.local()
 
+pathDB = os.path.join(os.path.dirname(__file__), 'catalog.db')
 
 def acquire_db_connection():
     
     if not hasattr(thread_data, 'database_connection'):
-        thread_data.database_connection = sqlite3.connect('catalog.db')
+        thread_data.database_connection = sqlite3.connect(pathDB)
         thread_data.database_connection.row_factory = sqlite3.Row  
     return thread_data.database_connection
 
@@ -20,11 +21,11 @@ def acquire_db_connection():
 def release_db_connection(exception):
     if hasattr(thread_data, 'database_connection'):
         thread_data.database_connection.close()
+        del thread_data.database_connection
 
 
 @app.route('/retrieve/item/<id>', methods=['GET'])
 def get_book_by_id(id):
-   
     if not id.isdigit():
         return jsonify({"error": "Book ID must be numeric"}), 400
 
@@ -33,6 +34,7 @@ def get_book_by_id(id):
     cursor.execute("SELECT * FROM books WHERE id=?", (id,))
     book = cursor.fetchone()
     cursor.close()
+
     if book:
         return jsonify(dict(book)), 200
     else:
@@ -45,14 +47,19 @@ def get_books_by_topic(topic):
     cursor.execute("SELECT * FROM books WHERE topic=?", (topic,))
     books = cursor.fetchall()
     cursor.close()
-    return jsonify([dict(book) for book in books])
+
+    if books:
+        return jsonify([dict(book) for book in books]), 200
+    else:
+        return jsonify({"error": "No books found for this topic"}), 404
 
 
 @app.route('/modify/<int:id>', methods=['PUT'])
 def modify_book(id):
    
-    updated_price = request.json.get('price')
-    updated_quantity = request.json.get('quantity')
+    data = request.get_json()
+    updated_price = data.get('price')
+    updated_quantity = data.get('quantity')
 
     
     if updated_price is None and updated_quantity is None:
