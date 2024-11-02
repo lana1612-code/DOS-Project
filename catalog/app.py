@@ -2,8 +2,8 @@ from flask import Flask, jsonify, request
 import sqlite3
 import threading
 import os
-app = Flask(__name__)
 
+app = Flask(__name__)
 
 thread_data = threading.local()
 
@@ -23,7 +23,7 @@ def release_db_connection(exception):
         thread_data.database_connection.close()
         del thread_data.database_connection
 
-
+#! work: done
 @app.route('/retrieve/item/<id>', methods=['GET'])
 def get_book_by_id(id):
     if not id.isdigit():
@@ -40,6 +40,7 @@ def get_book_by_id(id):
     else:
         return jsonify({"error": "Book not found"}), 404
 
+#! work: done
 @app.route('/retrieve/topic/<topic>', methods=['GET'])
 def get_books_by_topic(topic):
     database = acquire_db_connection()
@@ -53,7 +54,7 @@ def get_books_by_topic(topic):
     else:
         return jsonify({"error": "No books found for this topic"}), 404
 
-
+#! work: done
 @app.route('/modify/<int:id>', methods=['PUT'])
 def modify_book(id):
    

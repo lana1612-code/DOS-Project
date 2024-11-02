@@ -30,7 +30,7 @@ def close_connections(error):
     if hasattr(thread_local_storage, 'catalog_db_connection'):
         thread_local_storage.catalog_db_connection.close()
 
-
+#! work: done
 @app.route('/purchase/<book_id>/', methods=['PUT'])
 def process_purchase(book_id):
     
@@ -39,7 +39,7 @@ def process_purchase(book_id):
     except ValueError:
         return jsonify({"message": "Book ID must be a numeric value"}), 400
 
-    
+    order_db_connection = openOrderDB()
     catalog_db_connection = openCatalogDB()
 
     with catalog_db_connection:
@@ -58,10 +58,10 @@ def process_purchase(book_id):
             return jsonify({"message": "Book not found", "status": False}), 404
 
     
-    order_db_connection = openOrderDB()
+    
     with order_db_connection:
         order_cursor = order_db_connection.cursor()
-        order_cursor.execute("INSERT INTO orders (book_id) VALUES (?)", (book_id,))
+        order_cursor.execute("INSERT INTO orders (book_id, order_date, quantity) VALUES (?, ?, ?)", (book_id, "2020-10-13", 1))
     
     return jsonify({"message": "Book successfully purchased", "status": True}), 200
 
